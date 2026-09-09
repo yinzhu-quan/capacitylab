@@ -46,6 +46,9 @@ button{font-family:inherit}
 /* Header */
 header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;
   padding-bottom:16px;border-bottom:2px solid var(--navy);margin-bottom:20px;flex-wrap:wrap}
+.brand-row{display:flex;align-items:center;gap:16px;min-width:0}
+.logo{flex:none;width:56px;height:56px;border-radius:14px;box-shadow:var(--shadow)}
+@media(max-width:520px){.logo{width:46px;height:46px}}
 .brand{display:flex;flex-direction:column;gap:4px}
 .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
   color:var(--gold-deep);font-weight:500}
@@ -207,10 +210,29 @@ footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);
 
 <div class="wrap">
   <header>
+    <div class="brand-row">
+      <svg class="logo" viewBox="0 0 512 512" role="img" aria-label="Capacity model logo" width="56" height="56">
+        <defs>
+          <linearGradient id="logobg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#013a68"/><stop offset="1" stop-color="#002845"/>
+          </linearGradient>
+          <clipPath id="logohex"><path d="M256 92 L398 174 L398 338 L256 420 L114 338 L114 174 Z"/></clipPath>
+        </defs>
+        <rect width="512" height="512" rx="112" fill="url(#logobg)"/>
+        <g clip-path="url(#logohex)">
+          <rect x="100" y="80" width="312" height="360" fill="#b3a369"/>
+          <rect x="100" y="150" width="312" height="46" fill="#1a1a1a"/>
+          <rect x="100" y="238" width="312" height="46" fill="#1a1a1a"/>
+          <rect x="100" y="326" width="312" height="46" fill="#1a1a1a"/>
+          <path d="M120 372 C 190 372 208 210 256 208 C 304 210 322 372 392 372" fill="none" stroke="#f2ead0" stroke-width="12" stroke-linecap="round" opacity="0.95"/>
+        </g>
+        <path d="M256 92 L398 174 L398 338 L256 420 L114 338 L114 174 Z" fill="none" stroke="#cdbf85" stroke-width="14" stroke-linejoin="round"/>
+      </svg>
     <div class="brand">
       <div class="eyebrow">ISyE 6202 · 6335 Supply Chain Facilities · Capacity Modeling</div>
       <h1>Stochastic Capacity Simulator</h1>
       <div class="sub">A Monte-Carlo model of daily production under stochastic demand, reliability, quality and efficiency. Set the parameters, then roll a new simulated instance.</div>
+    </div>
     </div>
     <div class="head-tools">
       <button class="theme-btn" id="themeBtn" title="Toggle light / dark" aria-label="Toggle theme">◐</button>
