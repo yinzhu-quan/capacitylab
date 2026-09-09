@@ -212,19 +212,21 @@ footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);
   <header>
     <div class="brand-row">
       <svg class="logo" viewBox="0 0 512 512" role="img" aria-label="Logistics capacity model logo" width="56" height="56">
-        <rect width="512" height="512" rx="112" fill="#ffffff"/>
-        <rect x="6" y="6" width="500" height="500" rx="106" fill="none" stroke="#e7e3d6" stroke-width="4"/>
-        <g stroke="#b3a369" stroke-width="15" stroke-linecap="round">
-          <line x1="92" y1="212" x2="150" y2="212"/>
-          <line x1="70" y1="250" x2="150" y2="250"/>
-          <line x1="100" y1="288" x2="150" y2="288"/>
-        </g>
-        <rect x="162" y="176" width="164" height="132" rx="10" fill="#b3a369"/>
-        <path d="M326 210 h58 l44 46 v52 h-102 z" fill="#003057"/>
-        <path d="M356 224 h24 l30 32 h-54 z" fill="#dfe7ef"/>
-        <rect x="162" y="308" width="266" height="14" rx="4" fill="#003057"/>
-        <circle cx="222" cy="330" r="34" fill="#26303c"/><circle cx="222" cy="330" r="14" fill="#f2ead0"/>
-        <circle cx="372" cy="330" r="34" fill="#26303c"/><circle cx="372" cy="330" r="14" fill="#f2ead0"/>
+        <defs>
+          <linearGradient id="logobg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#013a68"/><stop offset="1" stop-color="#002845"/>
+          </linearGradient>
+        </defs>
+        <rect width="512" height="512" rx="112" fill="url(#logobg)"/>
+        <circle cx="256" cy="252" r="170" fill="none" stroke="#e7dcb2" stroke-width="11" stroke-linecap="round" stroke-dasharray="2 34" opacity="0.85"/>
+        <path d="M256 70 C 224 70 198 96 198 128 C 198 172 256 232 256 232 C 256 232 314 172 314 128 C 314 96 288 70 256 70 Z" fill="#b3a369"/>
+        <circle cx="256" cy="128" r="22" fill="#002845"/>
+        <rect x="120" y="300" width="150" height="92" rx="8" fill="#b3a369"/>
+        <path d="M186 300 v92 M186 300 l14 22 h-28 z" fill="#8a7f4e"/>
+        <path d="M270 328 h58 l32 34 v30 h-90 z" fill="#cdbf85"/>
+        <rect x="300" y="338" width="40" height="24" rx="4" fill="#002845"/>
+        <circle cx="178" cy="404" r="30" fill="#e7dcb2"/><circle cx="178" cy="404" r="12" fill="#002845"/>
+        <circle cx="326" cy="404" r="30" fill="#e7dcb2"/><circle cx="326" cy="404" r="12" fill="#002845"/>
       </svg>
     <div class="brand">
       <div class="eyebrow">ISyE 6202 · 6335 Supply Chain Facilities · Capacity Modeling</div>
