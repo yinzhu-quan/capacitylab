@@ -1,0 +1,799 @@
+<title>Stochastic Capacity Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#f2f3f1; --surface:#ffffff; --surface-2:#ecefe9; --surface-3:#e3e7df;
+  --ink:#12233a; --muted:#5c6a78; --faint:#8894a2; --line:#d8dde2; --line-strong:#c2c9d1;
+  --navy:#003057; --gold:#b3a369; --gold-deep:#8a7f4e;
+  --good:#2f8f5b; --warn:#c9821f; --crit:#c23b32;
+  --s-demand:#2f6fd0; --s-cap:#e0801f; --s-prod:#2e9e6b; --s-inv:#1f4e79; --s-lost:#c23b32;
+  --c1:#3b82c4;--c2:#d24b57;--c3:#e0982a;--c4:#157a8a;--c5:#9c4f2f;--c6:#4f9d54;--c7:#7a5cc0;
+  --shadow:0 1px 2px rgba(16,35,58,.06),0 4px 16px rgba(16,35,58,.06);
+  --radius:12px;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0d151e; --surface:#151f2b; --surface-2:#1c2836; --surface-3:#24313f;
+    --ink:#e9eef4; --muted:#98a6b6; --faint:#6b7a8a; --line:#293747; --line-strong:#374757;
+    --navy:#6fa0d4; --gold:#c9bd86; --gold-deep:#d8cd97;
+    --good:#4bb57e; --warn:#e0a03e; --crit:#e0645a;
+    --s-demand:#5b93e6; --s-cap:#f0982e; --s-prod:#3fb883; --s-inv:#7fb0dd; --s-lost:#e0645a;
+    --c1:#5ea0dd;--c2:#e26e78;--c3:#eab049;--c4:#3fa6b8;--c5:#c47a55;--c6:#63b568;--c7:#9d84d6;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0d151e; --surface:#151f2b; --surface-2:#1c2836; --surface-3:#24313f;
+  --ink:#e9eef4; --muted:#98a6b6; --faint:#6b7a8a; --line:#293747; --line-strong:#374757;
+  --navy:#6fa0d4; --gold:#c9bd86; --gold-deep:#d8cd97;
+  --good:#4bb57e; --warn:#e0a03e; --crit:#e0645a;
+  --s-demand:#5b93e6; --s-cap:#f0982e; --s-prod:#3fb883; --s-inv:#7fb0dd; --s-lost:#e0645a;
+  --c1:#5ea0dd;--c2:#e26e78;--c3:#eab049;--c4:#3fa6b8;--c5:#c47a55;--c6:#63b568;--c7:#9d84d6;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+  font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3{margin:0;text-wrap:balance;font-weight:600}
+button{font-family:inherit}
+.wrap{max-width:1360px;margin:0 auto;padding:22px}
+
+/* Header */
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;
+  padding-bottom:16px;border-bottom:2px solid var(--navy);margin-bottom:20px;flex-wrap:wrap}
+.brand{display:flex;flex-direction:column;gap:4px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--gold-deep);font-weight:500}
+h1{font-size:27px;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:13px;max-width:52ch}
+.head-tools{display:flex;gap:10px;align-items:center}
+.theme-btn{background:var(--surface);border:1px solid var(--line-strong);color:var(--muted);
+  width:38px;height:38px;border-radius:9px;cursor:pointer;font-size:15px;display:grid;place-items:center}
+.theme-btn:hover{color:var(--ink);border-color:var(--navy)}
+
+/* Layout */
+.grid{display:grid;grid-template-columns:328px 1fr;gap:20px;align-items:start}
+@media(max-width:940px){.grid{grid-template-columns:1fr}}
+
+/* Panel */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow)}
+.rail{position:sticky;top:14px;padding:4px 0 0}
+@media(max-width:940px){.rail{position:static}}
+.rail-head{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 10px}
+.rail-head h2{font-size:13px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+.run-btn{width:calc(100% - 32px);margin:0 16px 14px;padding:12px;border:none;border-radius:10px;
+  background:var(--gold);color:#241f07;font-weight:700;font-size:14.5px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:9px;letter-spacing:.01em;
+  box-shadow:0 1px 0 rgba(0,0,0,.08);transition:transform .05s ease,filter .15s}
+.run-btn:hover{filter:brightness(1.05)}
+.run-btn:active{transform:translateY(1px)}
+.run-btn .dice{flex:none;display:block}
+
+.group{border-top:1px solid var(--line);padding:14px 16px}
+.group-title{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--faint);margin-bottom:12px;font-weight:600}
+.field{display:grid;grid-template-columns:1fr auto;gap:6px 8px;align-items:center;margin-bottom:11px}
+.field:last-child{margin-bottom:2px}
+.field label{font-size:13px;color:var(--ink);display:flex;align-items:center;gap:5px}
+.unit{grid-column:1/2;grid-row:2;font-size:11px;color:var(--faint);font-family:var(--mono);margin-top:-3px}
+.field input,.field select{grid-column:2;grid-row:1;width:92px;padding:6px 8px;text-align:right;
+  font-family:var(--mono);font-size:13px;font-weight:500;
+  background:var(--surface-2);border:1px solid var(--line-strong);border-radius:7px;color:var(--ink)}
+.field.wide input,.field.wide select{width:118px}
+.field select{text-align:left;cursor:pointer}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--navy);outline-offset:1px}
+input:invalid{border-color:var(--crit)}
+
+/* info tooltip */
+.info{position:relative;width:15px;height:15px;border-radius:50%;border:1px solid var(--line-strong);
+  color:var(--faint);font-size:10px;font-weight:700;display:inline-grid;place-items:center;cursor:help;flex:none}
+.info:hover,.info:focus{color:var(--surface);background:var(--navy);border-color:var(--navy);outline:none}
+.info .tip{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);
+  width:230px;background:var(--ink);color:var(--bg);padding:9px 11px;border-radius:8px;font-size:12px;
+  line-height:1.45;font-weight:400;font-family:var(--sans);letter-spacing:0;text-transform:none;
+  box-shadow:0 6px 20px rgba(0,0,0,.28);opacity:0;visibility:hidden;transition:opacity .12s;z-index:40;pointer-events:none}
+.info .tip::after{content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);
+  border:6px solid transparent;border-top-color:var(--ink)}
+.info:hover .tip,.info:focus .tip{opacity:1;visibility:visible}
+.info .tip b{color:var(--gold)}
+
+/* computed chips */
+.computed{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--line);
+  border-radius:10px;overflow:hidden;margin:0 16px 16px}
+.chip{background:var(--surface-2);padding:10px 8px;text-align:center}
+.chip .k{font-size:10px;font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase;color:var(--faint)}
+.chip .v{font-size:17px;font-weight:600;font-family:var(--mono);color:var(--navy);margin-top:3px;font-variant-numeric:tabular-nums}
+.chip .u{font-size:9.5px;color:var(--faint);font-family:var(--mono)}
+
+/* Main column */
+.main{display:flex;flex-direction:column;gap:20px;min-width:0}
+
+/* KPI hero */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+@media(max-width:640px){.kpis{grid-template-columns:1fr 1fr}}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px 16px 14px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--navy)}
+.kpi.k-good::before{background:var(--good)} .kpi.k-warn::before{background:var(--warn)} .kpi.k-crit::before{background:var(--crit)}
+.kpi .lab{font-size:11px;font-family:var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:5px}
+.kpi .big{font-size:31px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:8px;letter-spacing:-.02em;line-height:1}
+.kpi .foot{font-size:12px;color:var(--muted);margin-top:6px;font-family:var(--mono)}
+.pill{display:inline-block;font-size:10px;font-weight:600;font-family:var(--mono);padding:2px 7px;border-radius:20px;letter-spacing:.03em}
+.pill.good{background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good)}
+.pill.warn{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.pill.crit{background:color-mix(in srgb,var(--crit) 16%,transparent);color:var(--crit)}
+
+/* card */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:16px 18px}
+.card-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.card-head h2{font-size:15px}
+.card-head .note{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;font-family:var(--mono);color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend .leg{cursor:pointer;user-select:none;transition:opacity .12s}
+.legend .leg:hover{opacity:.7}
+.legend .leg.off{opacity:.36;text-decoration:line-through}
+.legend i{width:11px;height:3px;border-radius:2px;display:inline-block}
+.legend i.dot{width:9px;height:9px;border-radius:50%}
+
+/* charts */
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:860px){.charts{grid-template-columns:1fr}}
+.chart-wrap{position:relative}
+svg.chart{width:100%;height:auto;display:block;overflow:visible}
+.ax{stroke:var(--line-strong);stroke-width:1}
+.grid-line{stroke:var(--line);stroke-width:1}
+.tick{fill:var(--faint);font-family:var(--mono);font-size:10px}
+.axis-title{fill:var(--muted);font-family:var(--mono);font-size:10px;letter-spacing:.03em}
+.crosshair{stroke:var(--faint);stroke-width:1;stroke-dasharray:3 3;opacity:0}
+.zoomsel{fill:var(--navy);opacity:.12;pointer-events:none}
+svg.chart{cursor:crosshair}
+.tooltip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);
+  font-size:11.5px;font-family:var(--mono);padding:7px 9px;border-radius:7px;opacity:0;transition:opacity .1s;
+  box-shadow:0 6px 18px rgba(0,0,0,.3);z-index:20;white-space:nowrap;line-height:1.5}
+.tooltip b{color:var(--gold)}
+.tooltip .row{display:flex;justify-content:space-between;gap:12px}
+.tooltip .sw{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px}
+
+/* stats table */
+.tbl-scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-family:var(--mono);font-size:13.5px;font-variant-numeric:tabular-nums}
+th,td{padding:6px 9px;text-align:right;white-space:nowrap}
+th{color:var(--muted);font-weight:600;font-size:12px;letter-spacing:.01em;vertical-align:bottom;line-height:1.22;
+  border-bottom:1.5px solid var(--line-strong);position:sticky;top:0;background:var(--surface);z-index:2}
+td:first-child,th:first-child{text-align:left;position:sticky;left:0;background:var(--surface)}
+tbody tr:nth-child(even) td{background:var(--surface-2)}
+tbody tr:nth-child(even) td:first-child{background:var(--surface-2)}
+.stats-tbl td:first-child{font-weight:600;color:var(--navy);text-transform:uppercase;font-size:12px}
+.ledger-scroll{max-height:440px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+.ledger th{font-size:11.5px}
+.ledger td.day{color:var(--muted)}
+.ledger tr.off td{color:var(--faint)}
+.ledger tr.off td.day{box-shadow:inset 3px 0 0 var(--gold)}
+.ledger .bad{color:var(--crit);font-weight:600}
+.ledger .full{color:var(--good)}
+.badge-off{font-size:9px;color:var(--gold-deep);font-family:var(--mono)}
+
+/* formulas card */
+.fxcard{padding:0}
+.fxcard>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;
+  gap:12px;padding:16px 18px;font-size:15px;font-weight:600;color:var(--ink)}
+.fxcard>summary::-webkit-details-marker{display:none}
+.fxcard>summary .chev{font-family:var(--mono);color:var(--muted);font-size:12px;transition:transform .15s}
+.fxcard[open]>summary .chev{transform:rotate(90deg)}
+.fx-body{padding:2px 18px 18px;display:grid;grid-template-columns:1fr 1fr;gap:18px 28px}
+@media(max-width:720px){.fx-body{grid-template-columns:1fr}}
+.card:not(.fxcard)>.fx-body{padding:6px 0 0}
+.fx-group{min-width:0}
+.fx-h{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);
+  font-weight:600;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--line)}
+.fx-row{display:flex;gap:10px;padding:4px 0;font-family:var(--mono);font-size:12.5px;line-height:1.55;align-items:baseline}
+.fx-name{color:var(--navy);font-weight:600;flex:none;min-width:104px}
+.fx-eq{color:var(--ink)}
+.fx-eq .op{color:var(--gold-deep)}
+.fx-note{color:var(--faint);font-size:11px}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);
+  color:var(--faint);font-size:11.5px;font-family:var(--mono);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="eyebrow">ISyE 6202 · 6335 Supply Chain Facilities · Capacity Modeling</div>
+      <h1>Stochastic Capacity Simulator</h1>
+      <div class="sub">A Monte-Carlo model of daily production under stochastic demand, reliability, quality and efficiency. Set the parameters, then roll a new simulated instance.</div>
+    </div>
+    <div class="head-tools">
+      <button class="theme-btn" id="themeBtn" title="Toggle light / dark" aria-label="Toggle theme">◐</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- CONTROL RAIL -->
+    <aside class="panel rail">
+      <div class="rail-head"><h2>Parameters</h2></div>
+      <button class="run-btn" id="runBtn"><svg class="dice" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="currentColor"/><path d="M9.6 7.4 L16.8 12 L9.6 16.6 Z" fill="var(--gold)"/></svg> Run new simulation</button>
+
+      <div class="computed" id="computed">
+        <div class="chip"><div class="k">Gross cap</div><div class="v" id="c-gross">–</div><div class="u">units/day</div></div>
+        <div class="chip"><div class="k" style="text-transform:none">r·q·e</div><div class="v" id="c-eqr">–</div><div class="u">mean factor</div></div>
+        <div class="chip"><div class="k">Est net cap</div><div class="v" id="c-net">–</div><div class="u">units/day</div></div>
+      </div>
+
+      <div class="group">
+        <div class="group-title">Resources &amp; process</div>
+        <div class="field">
+          <label>Number of production resources <span class="info" tabindex="0">i<span class="tip"><b>Number of production resources</b> you deploy — machines, workstations, servers. Enters Gross capacity = N × a ÷ t.</span></span></label>
+          <input type="number" id="N" value="12" min="1" max="60" step="1">
+        </div>
+        <div class="field">
+          <label>Process time <span class="info" tabindex="0">i<span class="tip"><b>Minutes of resource time per unit.</b> Higher t means each unit ties up capacity longer, lowering output.</span></span></label>
+          <input type="number" id="t" value="5" min="0.1" step="0.1"><span class="unit">min/part</span>
+        </div>
+        <div class="field">
+          <label>Availability <span class="info" tabindex="0">i<span class="tip"><b>Minutes a resource is available per working day</b> (480 = 8 h). Weekly availability = a × days per week.</span></span></label>
+          <input type="number" id="a" value="480" min="1" step="any"><span class="unit">min/day</span>
+        </div>
+        <div class="field">
+          <label>Days per week <span class="info" tabindex="0">i<span class="tip"><b>Working days per 7-day week.</b> The first k days of each week produce; the rest are off — <b>demand still occurs</b> on off-days.</span></span></label>
+          <input type="number" id="k" value="5" min="1" max="7" step="1"><span class="unit">first k days work</span>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-title">Inventory &amp; horizon</div>
+        <div class="field">
+          <label>Target inventory <span class="info" tabindex="0">i<span class="tip"><b>Level production refills toward each day.</b> Day-1 initial stock starts at this value; afterwards each day opens with yesterday's closing stock.</span></span></label>
+          <input type="number" id="target" value="400" min="0" step="any"><span class="unit">units</span>
+        </div>
+        <div class="field">
+          <label>Simulation days <span class="info" tabindex="0">i<span class="tip"><b>Monte-Carlo horizon</b> — how many days to simulate. Statistics are taken over all these days.</span></span></label>
+          <input type="number" id="days" value="300" min="7" max="2000" step="1"><span class="unit">days</span>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-title">Demand distribution</div>
+        <div class="field wide">
+          <label>Distribution <span class="info" tabindex="0">i<span class="tip">Distribution each day's demand is drawn from. Demand is floored at <b>0</b> (never negative).</span></span></label>
+          <select id="demDist">
+            <option value="normal">Normal</option>
+            <option value="triangular">Triangular</option>
+            <option value="pert">PERT</option>
+            <option value="beta">Beta</option>
+          </select>
+        </div>
+        <div data-dem="normal">
+          <div class="field"><label>Mean</label><input type="number" id="dMean" value="428.6" step="any"><span class="unit">units/day</span></div>
+          <div class="field"><label>Std dev</label><input type="number" id="dStd" value="37.8" min="0" step="any"><span class="unit">units/day</span></div>
+        </div>
+        <div data-dem="triangular" hidden>
+          <div class="field"><label>Min</label><input type="number" id="tMin" value="300" step="any"></div>
+          <div class="field"><label>Most likely</label><input type="number" id="tMode" value="429" step="any"></div>
+          <div class="field"><label>Max</label><input type="number" id="tMax" value="560" step="any"></div>
+        </div>
+        <div data-dem="pert" hidden>
+          <div class="field"><label>Min</label><input type="number" id="pMin" value="300" step="any"></div>
+          <div class="field"><label>Most likely</label><input type="number" id="pMode" value="429" step="any"></div>
+          <div class="field"><label>Max</label><input type="number" id="pMax" value="560" step="any"></div>
+          <div class="field"><label>λ shape</label><input type="number" id="pLam" value="4" min="0.1" step="any"></div>
+        </div>
+        <div data-dem="beta" hidden>
+          <div class="field"><label>Min</label><input type="number" id="bMin" value="300" step="any"></div>
+          <div class="field"><label>Max</label><input type="number" id="bMax" value="560" step="any"></div>
+          <div class="field"><label>Mean</label><input type="number" id="bMean" value="429" step="any"></div>
+          <div class="field"><label>Std dev</label><input type="number" id="bStd" value="40" min="0.1" step="any"></div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-title">Daily factors — Beta on [0, 1]</div>
+        <p style="font-size:12px;color:var(--muted);line-height:1.4;margin:2px 0 10px">Each factor is <b>Beta</b>-distributed with a <b>fixed</b> mean 90%, min 0% and max 100%. You set only the <b>standard deviation</b> (σ) of each factor.</p>
+        <div class="field"><label>σ(Reliability) <span class="info" tabindex="0">i<span class="tip">Std dev of the daily <b>Reliability</b> factor. Keep <b>≤ 0.10</b> for a clean bell shape.</span></span></label><input type="number" id="sAvail" value="0.05" min="0.01" max="0.10" step="0.01"></div>
+        <div class="field"><label>σ(Quality)</label><input type="number" id="sQual" value="0.05" min="0.01" max="0.10" step="0.01"></div>
+        <div class="field"><label>σ(Efficiency)</label><input type="number" id="sEff" value="0.05" min="0.01" max="0.10" step="0.01"></div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main">
+      <div class="kpis" id="kpis"></div>
+
+      <div class="card">
+        <div class="card-head"><h2>Parameters</h2><div class="note">Symbols used by the model</div></div>
+        <div class="fx-body">
+          <div class="fx-group">
+            <div class="fx-h">Resources &amp; process</div>
+            <div class="fx-row"><span class="fx-name">N</span><span class="fx-eq">Number of production resources</span></div>
+            <div class="fx-row"><span class="fx-name">t</span><span class="fx-eq">Process time, minutes per part</span></div>
+            <div class="fx-row"><span class="fx-name">a</span><span class="fx-eq">Availability of resource, minutes per working day</span></div>
+            <div class="fx-row"><span class="fx-name">k</span><span class="fx-eq">Working days per week (first k days work)</span></div>
+            <div class="fx-row"><span class="fx-name">w</span><span class="fx-eq">Work-day flag: 1 on a working day (first k of each week), else 0</span></div>
+          </div>
+          <div class="fx-group">
+            <div class="fx-h">Demand &amp; inventory</div>
+            <div class="fx-row"><span class="fx-name">d</span><span class="fx-eq">Daily demand, product units per day</span></div>
+            <div class="fx-row"><span class="fx-name">Target</span><span class="fx-eq">Target inventory, units</span></div>
+            <div class="fx-row"><span class="fx-name">Init</span><span class="fx-eq">Stock at the start of a day: equals Target on day 1, then the previous day's ending stock</span></div>
+            <div class="fx-row"><span class="fx-name">Days</span><span class="fx-eq">Simulation horizon, number of days</span></div>
+          </div>
+          <div class="fx-group">
+            <div class="fx-h">Daily factors — Beta on [0, 1]</div>
+            <div class="fx-row"><span class="fx-name">R</span><span class="fx-eq">Reliability that day — fraction of time the resource actually runs (0–1); mean written r</span></div>
+            <div class="fx-row"><span class="fx-name">Q</span><span class="fx-eq">Quality that day — fraction of output that is good (0–1); mean written q</span></div>
+            <div class="fx-row"><span class="fx-name">E</span><span class="fx-eq">Efficiency that day — actual speed as a fraction of rated speed (0–1); mean written e</span></div>
+          </div>
+          <div class="fx-group">
+            <div class="fx-h">Derived capacity</div>
+            <div class="fx-row"><span class="fx-name">Gross cap</span><span class="fx-eq">Capacity if fully utilized, units per day</span></div>
+            <div class="fx-row"><span class="fx-name">Net cap</span><span class="fx-eq">Capacity after reliability, quality, efficiency losses</span></div>
+          </div>
+        </div>
+      </div>
+
+      <details class="card fxcard">
+        <summary><span>Model formulas</span><span class="chev">▶</span></summary>
+        <div class="fx-body">
+          <div class="fx-group">
+            <div class="fx-h">Derived capacity (per working day)</div>
+            <div class="fx-row"><span class="fx-name">Gross cap</span><span class="fx-eq">= N <span class="op">×</span> a <span class="op">÷</span> t</span></div>
+            <div class="fx-row"><span class="fx-name">r·q·e</span><span class="fx-eq">= mean(R) <span class="op">×</span> mean(Q) <span class="op">×</span> mean(E)</span></div>
+            <div class="fx-row"><span class="fx-name">Est net cap</span><span class="fx-eq">= (r·q·e) <span class="op">×</span> Gross cap</span></div>
+          </div>
+
+          <div class="fx-group">
+            <div class="fx-h">Daily calculation</div>
+            <div class="fx-row"><span class="fx-name">Net capacity</span><span class="fx-eq">= w <span class="op">×</span> ⌊ a <span class="op">×</span> N <span class="op">×</span> (R <span class="op">×</span> Q <span class="op">×</span> E) <span class="op">÷</span> t ⌋</span></div>
+            <div class="fx-row"><span class="fx-name">Production</span><span class="fx-eq">= min( Net cap, d + max(0, Target − Init) )</span></div>
+            <div class="fx-row"><span class="fx-name">Sales</span><span class="fx-eq">= max( 0, min( d, Production + Init ) )</span></div>
+            <div class="fx-row"><span class="fx-name">Lost sales</span><span class="fx-eq">= max( 0, d − Sales )</span></div>
+            <div class="fx-row"><span class="fx-name">Final stock</span><span class="fx-eq">= max( 0, Init + Production − Sales )</span></div>
+            <div class="fx-row"><span class="fx-name">Init</span><span class="fx-eq">= Target (day 1); prev Final stock (day &gt; 1)</span></div>
+          </div>
+
+          <div class="fx-group">
+            <div class="fx-h">Ratios &amp; summary</div>
+            <div class="fx-row"><span class="fx-name">Service level</span><span class="fx-eq">= Sales <span class="op">÷</span> d&nbsp;&nbsp;<span class="fx-note">(= 1 if d = 0)</span></span></div>
+            <div class="fx-row"><span class="fx-name">Gross Capacity Utilization</span><span class="fx-eq">= Production <span class="op">÷</span> Gross cap</span></div>
+            <div class="fx-row"><span class="fx-name">Net Capacity Utilization</span><span class="fx-eq">= Production <span class="op">÷</span> Net cap&nbsp;&nbsp;<span class="fx-note">(0 on off-days)</span></span></div>
+            <div class="fx-row"><span class="fx-name">Min/Mean/Max</span><span class="fx-eq">of each column over all days</span></div>
+          </div>
+        </div>
+      </details>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Daily quantities under current scenario instance</h2>
+          <div class="legend" id="legend1"></div>
+        </div>
+        <div class="chart-wrap">
+          <svg class="chart" id="chart1" viewBox="0 0 880 320" preserveAspectRatio="none" role="img" aria-label="Daily stock, demand, capacity, production, sales and lost sales over time"></svg>
+          <div class="tooltip" id="tip1"></div>
+        </div>
+        <div class="note" style="font-size:11.5px;color:var(--faint);margin-top:8px">Click a legend name to hide its line · drag across to zoom in · double-click to reset</div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Dynamic service &amp; capacity utilization performance</h2>
+          <div class="legend" id="legend2"></div>
+        </div>
+        <div class="chart-wrap">
+          <svg class="chart" id="chart2" viewBox="0 0 880 300" preserveAspectRatio="none" role="img" aria-label="Service level and capacity utilization over time"></svg>
+          <div class="tooltip" id="tip2"></div>
+        </div>
+        <div class="note" style="font-size:11.5px;color:var(--faint);margin-top:8px">Click a legend name to hide its line · drag across to zoom in · double-click to reset</div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Summary statistics</h2><div class="note">Min · Mean · Max over all simulated days</div></div>
+        <div class="tbl-scroll">
+          <table class="stats-tbl" id="statsTbl"></table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Daily ledger</h2><div class="note" id="ledgerNote"></div></div>
+        <div class="ledger-scroll">
+          <table class="ledger" id="ledgerTbl"></table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span>Capacity Modeling · ISyE 6202 &amp; 6335 Supply Chain Facilities · Georgia Tech ISyE</span>
+    <span id="seedNote"></span>
+  </footer>
+</div>
+
+<script>
+/* ---------- Random generators ---------- */
+function randn(){ // standard normal (Box-Muller)
+  let u=0,v=0; while(u===0)u=Math.random(); while(v===0)v=Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+function gammaSample(k){ // shape k, scale 1 (Marsaglia-Tsang)
+  if(k<1) return gammaSample(k+1)*Math.pow(Math.random(),1/k);
+  const d=k-1/3, c=1/Math.sqrt(9*d);
+  while(true){
+    let x,v;
+    do{ x=randn(); v=1+c*x; }while(v<=0);
+    v=v*v*v; const u=Math.random();
+    if(u<1-0.0331*x*x*x*x) return d*v;
+    if(Math.log(u)<0.5*x*x+d*(1-v+Math.log(v))) return d*v;
+  }
+}
+function betaSample(a,b){ const x=gammaSample(a), y=gammaSample(b); return x/(x+y); }
+function betaFromMoments(mean,sigma){ // on [0,1]
+  const nu=mean*(1-mean)/(sigma*sigma)-1;
+  return {a:Math.max(1e-4,mean*nu), b:Math.max(1e-4,(1-mean)*nu)};
+}
+function sampleBetaScaled(lo,hi,mean,sigma){
+  const m=(mean-lo)/(hi-lo), s=sigma/(hi-lo);
+  const {a,b}=betaFromMoments(Math.min(0.999,Math.max(0.001,m)),Math.max(1e-3,s));
+  return lo+(hi-lo)*betaSample(a,b);
+}
+function sampleTriangular(lo,mode,hi){
+  const u=Math.random(), fc=(mode-lo)/(hi-lo);
+  return u<fc ? lo+Math.sqrt(u*(hi-lo)*(mode-lo)) : hi-Math.sqrt((1-u)*(hi-lo)*(hi-mode));
+}
+function samplePert(lo,mode,hi,lam){
+  const a=1+lam*(mode-lo)/(hi-lo), b=1+lam*(hi-mode)/(hi-lo);
+  return lo+(hi-lo)*betaSample(a,b);
+}
+
+/* ---------- Read inputs ---------- */
+const $=id=>document.getElementById(id);
+function num(id){return parseFloat($(id).value);}
+function readParams(){
+  return {
+    N:num('N'), t:num('t'), a:num('a'), k:Math.round(num('k')),
+    target:num('target'), days:Math.round(num('days')),
+    dem:$('demDist').value,
+    dMean:num('dMean'), dStd:num('dStd'),
+    tMin:num('tMin'), tMode:num('tMode'), tMax:num('tMax'),
+    pMin:num('pMin'), pMode:num('pMode'), pMax:num('pMax'), pLam:num('pLam'),
+    bMin:num('bMin'), bMax:num('bMax'), bMean:num('bMean'), bStd:num('bStd'),
+    fMean:0.90, sAvail:num('sAvail'), sQual:num('sQual'), sEff:num('sEff')
+  };
+}
+function drawDemand(p){
+  let d;
+  if(p.dem==='normal') d=p.dMean+randn()*p.dStd;
+  else if(p.dem==='triangular') d=sampleTriangular(p.tMin,p.tMode,p.tMax);
+  else if(p.dem==='pert') d=samplePert(p.pMin,p.pMode,p.pMax,p.pLam);
+  else d=sampleBetaScaled(p.bMin,p.bMax,p.bMean,p.bStd);
+  return Math.max(0,d);
+}
+
+/* ---------- Simulate ---------- */
+function simulate(p){
+  const gross=p.N*p.a/p.t;
+  const rows=[]; let init=p.target;
+  for(let day=1; day<=p.days; day++){
+    const work=((day-1)%7)<p.k ? 1:0;
+    const demand=drawDemand(p);
+    const av=sampleBetaScaled(0,1,p.fMean,p.sAvail);
+    const qu=sampleBetaScaled(0,1,p.fMean,p.sQual);
+    const ef=sampleBetaScaled(0,1,p.fMean,p.sEff);
+    const netcap=work*Math.floor(p.a*p.N*av*qu*ef/p.t);
+    const prod=Math.min(netcap, demand+Math.max(0,p.target-init));
+    const sales=Math.max(0,Math.min(demand,prod+init));
+    const lost=Math.max(0,demand-sales);
+    const final=Math.max(0,init+prod-sales);
+    const svc=demand>0?sales/demand:1;
+    const gu=prod/gross;
+    const nu=(work===1&&netcap>0)?prod/netcap:0;
+    rows.push({day,work,init,demand,av,qu,ef,netcap,prod,sales,lost,final,svc,gu,nu});
+    init=final;
+  }
+  return {rows,gross};
+}
+
+/* ---------- Stats ---------- */
+function stat(rows,key){
+  let mn=Infinity,mx=-Infinity,sm=0;
+  for(const r of rows){const v=r[key]; if(v<mn)mn=v; if(v>mx)mx=v; sm+=v;}
+  return {min:mn,mean:sm/rows.length,max:mx};
+}
+const fmt0=v=>Math.round(v).toLocaleString();
+const fmt1=v=>v.toFixed(1);
+const pct0=v=>(v*100).toFixed(0)+'%';
+const pct1=v=>(v*100).toFixed(1)+'%';
+
+/* ---------- Render KPIs ---------- */
+function renderKPIs(sim,p){
+  const rows=sim.rows;
+  const svc=stat(rows,'svc').mean;
+  const totLost=rows.reduce((s,r)=>s+r.lost,0);
+  const totDemand=rows.reduce((s,r)=>s+r.demand,0);
+  const stockDays=rows.filter(r=>r.lost>0.5).length;
+  const soCls=stockDays===0?'good':stockDays<=rows.length*0.1?'warn':'crit';
+  const html=`
+    <div class="kpi">
+      <div class="lab">Mean service level</div>
+      <div class="big">${pct1(svc)}</div>
+      <div class="foot">daily sales ÷ demand</div>
+    </div>
+    <div class="kpi">
+      <div class="lab">Total demand</div>
+      <div class="big">${fmt0(totDemand)}</div>
+      <div class="foot">units over horizon</div>
+    </div>
+    <div class="kpi k-${soCls}">
+      <div class="lab">Stockout days</div>
+      <div class="big">${stockDays}</div>
+      <div class="foot">of ${rows.length} days</div>
+    </div>
+    <div class="kpi">
+      <div class="lab">Total lost sales</div>
+      <div class="big">${fmt0(totLost)}</div>
+      <div class="foot">units over horizon</div>
+    </div>`;
+  $('kpis').innerHTML=html;
+}
+
+/* ---------- Stats table ---------- */
+const STAT_COLS=[
+  ['Initial<br>Stock','init',fmt0],['Demand','demand',fmt0],
+  ['Reliability','av',pct0],['Quality','qu',pct0],['Efficiency','ef',pct0],
+  ['Net Capacity<br>(% of gross)','netcapPct',pct0],
+  ['Production','prod',fmt0],['Sales','sales',fmt0],['Lost<br>Sales','lost',fmt0],
+  ['Final<br>Stock','final',fmt0],['Service<br>Level','svc',pct1],
+  ['Gross Capacity<br>Utilization','gu',pct0],['Net Capacity<br>Utilization','nu',pct0]
+];
+function renderStats(sim){
+  const rows=sim.rows.map(r=>({...r,netcapPct:r.netcap/sim.gross}));
+  let head='<thead><tr><th></th>'+STAT_COLS.map(c=>`<th>${c[0]}</th>`).join('')+'</tr></thead>';
+  let body='<tbody>';
+  for(const s of ['min','mean','max']){
+    body+=`<tr><td>${s}</td>`+STAT_COLS.map(c=>{
+      const st=stat(rows,c[1]); return `<td>${c[2](st[s])}</td>`;
+    }).join('')+'</tr>';
+  }
+  body+='</tbody>';
+  $('statsTbl').innerHTML=head+body;
+}
+
+/* ---------- Ledger ---------- */
+function renderLedger(sim){
+  const rows=sim.rows;
+  const cols=[['Day','day'],['','work'],['Initial<br>Stock','init'],['Demand','demand'],
+    ['Reliability','av'],['Quality','qu'],['Efficiency','ef'],['Net<br>Capacity','netcap'],['Production','prod'],
+    ['Sales','sales'],['Lost<br>Sales','lost'],['Final<br>Stock','final'],['Service<br>Level','svc'],['Gross Capacity<br>Utilization','gu'],['Net Capacity<br>Utilization','nu']];
+  let head='<thead><tr>'+cols.map(c=>`<th>${c[0]}</th>`).join('')+'</tr></thead>';
+  let body='<tbody>';
+  for(const r of rows){
+    body+=`<tr class="${r.work?'':'off'}">`+
+      `<td class="day">${r.day}</td>`+
+      `<td>${r.work?'':'<span class="badge-off">off</span>'}</td>`+
+      `<td>${fmt0(r.init)}</td>`+
+      `<td>${fmt0(r.demand)}</td>`+
+      `<td>${pct0(r.av)}</td><td>${pct0(r.qu)}</td><td>${pct0(r.ef)}</td>`+
+      `<td>${fmt0(r.netcap)}</td>`+
+      `<td>${fmt0(r.prod)}</td>`+
+      `<td>${fmt0(r.sales)}</td>`+
+      `<td class="${r.lost>0.5?'bad':''}">${fmt0(r.lost)}</td>`+
+      `<td>${fmt0(r.final)}</td>`+
+      `<td class="${r.svc>=0.999?'full':(r.svc<0.85?'bad':'')}">${pct0(r.svc)}</td>`+
+      `<td>${pct0(r.gu)}</td><td>${pct0(r.nu)}</td></tr>`;
+  }
+  body+='</tbody>';
+  $('ledgerTbl').innerHTML=head+body;
+  $('ledgerNote').textContent=`${rows.length} days · off-days marked with a gold rule`;
+}
+
+/* ---------- Charts (SVG) ---------- */
+function niceMax(v){ if(v<=0)return 1; const p=Math.pow(10,Math.floor(Math.log10(v))); const n=v/p;
+  const s=n<=1?1:n<=2?2:n<=5?5:10; return s*p; }
+function css(name){return getComputedStyle(document.documentElement).getPropertyValue(name).trim();}
+
+function lineChart(svg,tip,series,rows,opts){
+  opts=opts||{};
+  const W=opts.W||880, H=opts.H||300, ml=48, mr=12, mt=12, mb=26;
+  const fmt=opts.fmt||fmt0;
+  const n=rows.length, iw=W-ml-mr, ih=H-mt-mb;
+  const a0=opts.range?opts.range.a:0, b0=opts.range?opts.range.b:n-1, span=Math.max(1,b0-a0);
+  const vis=series.filter(s=>!s.hidden);
+  let dmax=0; for(const s of vis) for(let i=a0;i<=b0;i++) dmax=Math.max(dmax,rows[i][s.key]);
+  const ymax = opts.pct ? 1.2 : niceMax(dmax||1);
+  const nt = opts.pct ? 6 : 4;
+  const X=i=>ml+(i-a0)/span*iw;
+  const Y=v=>mt+ih-(v/ymax)*ih;
+  let g='';
+  for(let i=0;i<=nt;i++){const yv=ymax*i/nt, y=Y(yv);
+    g+=`<line class="grid-line" x1="${ml}" y1="${y}" x2="${W-mr}" y2="${y}"/>`;
+    g+=`<text class="tick" x="${ml-6}" y="${y+3}" text-anchor="end">${fmt(yv)}</text>`;}
+  const step=Math.max(1,Math.round(span/8));
+  for(let i=a0;i<=b0;i+=step){
+    g+=`<text class="tick" x="${X(i).toFixed(1)}" y="${H-8}" text-anchor="middle">${rows[i].day}</text>`;}
+  g+=`<text class="tick" x="${X(b0).toFixed(1)}" y="${H-8}" text-anchor="middle">${rows[b0].day}</text>`;
+  g+=`<line class="ax" x1="${ml}" y1="${mt}" x2="${ml}" y2="${mt+ih}"/>`;
+  g+=`<line class="ax" x1="${ml}" y1="${mt+ih}" x2="${W-mr}" y2="${mt+ih}"/>`;
+  for(const s of vis){
+    let d=''; for(let i=a0;i<=b0;i++){d+=(i===a0?'M':'L')+X(i).toFixed(1)+' '+Y(rows[i][s.key]).toFixed(1);}
+    g+=`<path d="${d}" fill="none" stroke="${css(s.color)}" stroke-width="1.3" stroke-linejoin="round" opacity="0.92"/>`;
+  }
+  g+=`<rect class="zoomsel" x="0" y="${mt}" width="0" height="${ih}"/>`;
+  g+=`<line class="crosshair" x1="0" y1="${mt}" x2="0" y2="${mt+ih}"/>`;
+  svg.innerHTML=g;
+  return {ml,iw,mt,ih,a0,b0,X,fmt,vis};
+}
+
+function areaChart(svg,tip,rows,key,color,target){
+  const W=340,H=220,ml=40,mr=8,mt=12,mb=24;
+  const n=rows.length, iw=W-ml-mr, ih=H-mt-mb;
+  let ymax=target||0; for(const r of rows) ymax=Math.max(ymax,r[key]); ymax=niceMax(ymax);
+  const X=i=>ml+(n<=1?0:i/(n-1)*iw), Y=v=>mt+ih-(v/ymax)*ih;
+  let g='';
+  for(let i=0;i<=4;i++){const yv=ymax*i/4,y=Y(yv);
+    g+=`<line class="grid-line" x1="${ml}" y1="${y}" x2="${W-mr}" y2="${y}"/>`;
+    g+=`<text class="tick" x="${ml-6}" y="${y+3}" text-anchor="end">${fmt0(yv)}</text>`;}
+  const step=Math.max(1,Math.round(n/5));
+  for(let i=0;i<n;i+=step) g+=`<text class="tick" x="${X(i)}" y="${H-7}" text-anchor="middle">${rows[i].day}</text>`;
+  if(target){const y=Y(target);g+=`<line x1="${ml}" y1="${y}" x2="${W-mr}" y2="${y}" stroke="${css('--faint')}" stroke-width="1" stroke-dasharray="4 3"/>`;}
+  let ln='',ar=`M${X(0)} ${Y(0)}`;
+  for(let i=0;i<n;i++){ln+=(i?'L':'M')+X(i).toFixed(1)+' '+Y(rows[i][key]).toFixed(1);ar+='L'+X(i).toFixed(1)+' '+Y(rows[i][key]).toFixed(1);}
+  ar+=`L${X(n-1)} ${Y(0)}Z`;
+  g+=`<path d="${ar}" fill="${css(color)}" opacity="0.13"/>`;
+  g+=`<path d="${ln}" fill="none" stroke="${css(color)}" stroke-width="1.6" stroke-linejoin="round"/>`;
+  g+=`<line class="ax" x1="${ml}" y1="${mt}" x2="${ml}" y2="${mt+ih}"/><line class="ax" x1="${ml}" y1="${mt+ih}" x2="${W-mr}" y2="${mt+ih}"/>`;
+  g+=`<line class="crosshair" id="${svg.id}-ch" x1="0" y1="${mt}" x2="0" y2="${mt+ih}"/>`;
+  svg.innerHTML=g;
+  hoverBind(svg,tip,rows,X,ml,iw,n,i=>`<b>Day ${rows[i].day}</b><div class="row"><span>Final stock</span><span>${fmt0(rows[i][key])}</span></div>`);
+}
+
+function barChart(svg,tip,rows,key,color){
+  const W=340,H=220,ml=40,mr=8,mt=12,mb=24;
+  const n=rows.length, iw=W-ml-mr, ih=H-mt-mb;
+  let ymax=0; for(const r of rows) ymax=Math.max(ymax,r[key]); ymax=niceMax(ymax||1);
+  const X=i=>ml+(n<=1?iw/2:i/(n-1)*iw), Y=v=>mt+ih-(v/ymax)*ih;
+  const bw=Math.max(0.7,iw/n*0.7);
+  let g='';
+  for(let i=0;i<=4;i++){const yv=ymax*i/4,y=Y(yv);
+    g+=`<line class="grid-line" x1="${ml}" y1="${y}" x2="${W-mr}" y2="${y}"/>`;
+    g+=`<text class="tick" x="${ml-6}" y="${y+3}" text-anchor="end">${fmt0(yv)}</text>`;}
+  const step=Math.max(1,Math.round(n/5));
+  for(let i=0;i<n;i+=step) g+=`<text class="tick" x="${X(i)}" y="${H-7}" text-anchor="middle">${rows[i].day}</text>`;
+  for(let i=0;i<n;i++){ if(rows[i][key]<=0)continue; const x=X(i)-bw/2, y=Y(rows[i][key]);
+    g+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${(mt+ih-y).toFixed(1)}" rx="0.8" fill="${css(color)}"/>`;}
+  g+=`<line class="ax" x1="${ml}" y1="${mt}" x2="${ml}" y2="${mt+ih}"/><line class="ax" x1="${ml}" y1="${mt+ih}" x2="${W-mr}" y2="${mt+ih}"/>`;
+  g+=`<line class="crosshair" id="${svg.id}-ch" x1="0" y1="${mt}" x2="0" y2="${mt+ih}"/>`;
+  svg.innerHTML=g;
+  hoverBind(svg,tip,rows,X,ml,iw,n,i=>`<b>Day ${rows[i].day}</b>${rows[i].work?'':' · off'}<div class="row"><span>Lost sales</span><span>${fmt0(rows[i][key])}</span></div>`);
+}
+
+function hoverBind(svg,tip,rows,X,ml,iw,n,html){
+  const ch=svg.querySelector('.crosshair');
+  function move(ev){
+    const rect=svg.getBoundingClientRect();
+    const px=(ev.clientX-rect.left)/rect.width*svg.viewBox.baseVal.width;
+    let i=Math.round((px-ml)/iw*(n-1)); i=Math.max(0,Math.min(n-1,i));
+    if(!isFinite(i))return;
+    const xv=X(i); ch.setAttribute('x1',xv); ch.setAttribute('x2',xv); ch.style.opacity=1;
+    tip.innerHTML=html(i); tip.style.opacity=1;
+    const wrapRect=svg.parentElement.getBoundingClientRect();
+    let lx=(ev.clientX-wrapRect.left)+12;
+    if(lx+tip.offsetWidth>wrapRect.width) lx=(ev.clientX-wrapRect.left)-tip.offsetWidth-12;
+    tip.style.left=lx+'px'; tip.style.top=Math.max(4,(ev.clientY-wrapRect.top)-10)+'px';
+  }
+  svg.onmousemove=move;
+  svg.onmouseleave=()=>{ch.style.opacity=0;tip.style.opacity=0;};
+}
+
+/* ---------- Orchestrate ---------- */
+let lastSim=null,lastP=null;
+function run(){
+  const p=readParams(); lastP=p;
+  const gross=p.N*p.a/p.t, eqr=p.fMean*p.fMean*p.fMean;
+  $('c-gross').textContent=fmt0(gross);
+  $('c-eqr').textContent=pct0(eqr);
+  $('c-net').textContent=fmt0(eqr*gross);
+  const sim=simulate(p); lastSim=sim;
+  renderKPIs(sim,p);
+  renderStats(sim);
+  renderLedger(sim);
+  drawCharts(sim);
+  $('seedNote').textContent='instance rolled '+new Date().toLocaleTimeString();
+}
+const SERIES1=[
+  {name:'Initial stock',key:'init',color:'--c1'},
+  {name:'Demand',key:'demand',color:'--c2'},
+  {name:'Net capacity',key:'netcap',color:'--c3'},
+  {name:'Production',key:'prod',color:'--c4'},
+  {name:'Sales',key:'sales',color:'--c5'},
+  {name:'Lost sales',key:'lost',color:'--c6'},
+  {name:'Final stock',key:'final',color:'--c7'}
+];
+const SERIES2=[
+  {name:'Service level',key:'svc',color:'--c1'},
+  {name:'Gross cap utilization',key:'gu',color:'--c2'},
+  {name:'Net cap utilization',key:'nu',color:'--c6'}
+];
+let CHARTS=[];
+function renderChart(c){
+  const geom=lineChart(c.svg,c.tip,c.series,c.rows,Object.assign({},c.opts,{range:c.range}));
+  bindInteraction(c,geom);
+  c.legend.innerHTML=c.series.map((s,i)=>
+    `<span class="leg${s.hidden?' off':''}" data-i="${i}"><i style="background:${css(s.color)}"></i>${s.name}</span>`).join('');
+  c.legend.querySelectorAll('.leg').forEach(el=>{
+    el.onclick=()=>{ const i=+el.dataset.i; c.series[i].hidden=!c.series[i].hidden; renderChart(c); };
+  });
+}
+function bindInteraction(c,geom){
+  const svg=c.svg, tip=c.tip, rows=c.rows;
+  const {ml,iw,mt,ih,a0,b0,X,fmt,vis}=geom;
+  const ch=svg.querySelector('.crosshair'), sel=svg.querySelector('.zoomsel');
+  const localX=ev=>{const r=svg.getBoundingClientRect(); return (ev.clientX-r.left)/r.width*svg.viewBox.baseVal.width;};
+  const clampX=x=>Math.max(ml,Math.min(ml+iw,x));
+  const idxAt=x=>{let i=a0+Math.round((x-ml)/iw*(b0-a0)); return Math.max(a0,Math.min(b0,i));};
+  let drag=null,winUp=null;
+  function endDrag(ev){
+    if(!drag) return;
+    const lx=clampX(localX(ev));
+    const iA=idxAt(Math.min(drag.x0,lx)), iB=idxAt(Math.max(drag.x0,lx));
+    drag=null; sel.setAttribute('width','0');
+    if(iB-iA>=2){ c.range={a:iA,b:iB}; renderChart(c); }
+  }
+  svg.onmousedown=ev=>{
+    drag={x0:clampX(localX(ev))}; ch.style.opacity=0; tip.style.opacity=0;
+    winUp=e=>{ endDrag(e); if(winUp){window.removeEventListener('mouseup',winUp); winUp=null;} };
+    window.addEventListener('mouseup',winUp);
+    ev.preventDefault();
+  };
+  svg.onmousemove=ev=>{
+    const lx=clampX(localX(ev));
+    if(drag){ const x=Math.min(drag.x0,lx), w=Math.abs(lx-drag.x0);
+      sel.setAttribute('x',x.toFixed(1)); sel.setAttribute('width',w.toFixed(1)); return; }
+    const i=idxAt(lx), xv=X(i);
+    ch.setAttribute('x1',xv); ch.setAttribute('x2',xv); ch.style.opacity=1;
+    tip.innerHTML=`<b>Day ${rows[i].day}</b>${rows[i].work?'':' · off'}`+
+      vis.map(s=>`<div class="row"><span><span class="sw" style="background:${css(s.color)}"></span>${s.name}</span><span>${fmt(rows[i][s.key])}</span></div>`).join('');
+    tip.style.opacity=1;
+    const wr=svg.parentElement.getBoundingClientRect();
+    let plx=(ev.clientX-wr.left)+12;
+    if(plx+tip.offsetWidth>wr.width) plx=(ev.clientX-wr.left)-tip.offsetWidth-12;
+    tip.style.left=plx+'px'; tip.style.top=Math.max(4,(ev.clientY-wr.top)-10)+'px';
+  };
+  svg.onmouseleave=()=>{ if(!drag){ ch.style.opacity=0; tip.style.opacity=0; } };
+  svg.ondblclick=()=>{ if(c.range){ c.range=null; renderChart(c); } };
+}
+function drawCharts(sim){
+  CHARTS=[
+    {svg:$('chart1'),tip:$('tip1'),legend:$('legend1'),series:SERIES1,opts:{W:880,H:320}},
+    {svg:$('chart2'),tip:$('tip2'),legend:$('legend2'),series:SERIES2,opts:{W:880,H:300,pct:true,fmt:pct0}}
+  ];
+  for(const c of CHARTS){ c.rows=sim.rows; renderChart(c); }
+}
+
+/* distribution param toggle */
+$('demDist').addEventListener('change',e=>{
+  document.querySelectorAll('[data-dem]').forEach(el=>{el.hidden=el.dataset.dem!==e.target.value;});
+});
+$('runBtn').addEventListener('click',run);
+/* re-run automatically when any input changes */
+document.querySelectorAll('input,select').forEach(el=>el.addEventListener('change',run));
+
+/* theme toggle */
+const themeBtn=$('themeBtn');
+function applyTheme(t){ if(t)document.documentElement.setAttribute('data-theme',t); else document.documentElement.removeAttribute('data-theme');
+  try{localStorage.setItem('capsim-theme',t||'');}catch(e){} redrawTheme(); }
+function currentTheme(){const s=document.documentElement.getAttribute('data-theme');
+  if(s)return s; return matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';}
+themeBtn.addEventListener('click',()=>applyTheme(currentTheme()==='dark'?'light':'dark'));
+function redrawTheme(){ if(lastSim) drawCharts(lastSim); }
+try{const saved=localStorage.getItem('capsim-theme'); if(saved)document.documentElement.setAttribute('data-theme',saved);}catch(e){}
+matchMedia('(prefers-color-scheme:dark)').addEventListener('change',redrawTheme);
+
+run();
+</script>
