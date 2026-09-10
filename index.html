@@ -1,4 +1,7 @@
 <title>Stochastic Capacity Simulator</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnNCIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMwMTNhNjgiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMwMDI4NDUiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iMTEyIiBmaWxsPSJ1cmwoI2JnNCkiLz4KCiAgPCEtLSBkYXNoZWQgbG9naXN0aWNzIHJvdXRlIC0tPgogIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjI1MiIgcj0iMTcwIiBmaWxsPSJub25lIiBzdHJva2U9IiNlN2RjYjIiIHN0cm9rZS13aWR0aD0iMTEiCiAgICAgICAgICBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1kYXNoYXJyYXk9IjIgMzQiIG9wYWNpdHk9IjAuODUiLz4KCiAgPCEtLSBsb2NhdGlvbiBwaW4gKHRvcCkgLS0+CiAgPHBhdGggZD0iTTI1NiA3MCBDIDIyNCA3MCAxOTggOTYgMTk4IDEyOCBDIDE5OCAxNzIgMjU2IDIzMiAyNTYgMjMyIEMgMjU2IDIzMiAzMTQgMTcyIDMxNCAxMjggQyAzMTQgOTYgMjg4IDcwIDI1NiA3MCBaIgogICAgICAgIGZpbGw9IiNiM2EzNjkiLz4KICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIxMjgiIHI9IjIyIiBmaWxsPSIjMDAyODQ1Ii8+CgogIDwhLS0gZGVsaXZlcnkgdHJ1Y2sgKGJvdHRvbSkgLS0+CiAgPGc+CiAgICA8IS0tIGNhcmdvIGJveCAtLT4KICAgIDxyZWN0IHg9IjEyMCIgeT0iMzAwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjkyIiByeD0iOCIgZmlsbD0iI2IzYTM2OSIvPgogICAgPCEtLSBib3ggdGFwZSAtLT4KICAgIDxwYXRoIGQ9Ik0xODYgMzAwIHY5MiBNMTg2IDMwMCBsMTQgMjIgaC0yOCB6IiBmaWxsPSIjOGE3ZjRlIi8+CiAgICA8IS0tIGNhYiAtLT4KICAgIDxwYXRoIGQ9Ik0yNzAgMzI4IGg1OCBsMzIgMzQgdjMwIGgtOTAgeiIgZmlsbD0iI2NkYmY4NSIvPgogICAgPHJlY3QgeD0iMzAwIiB5PSIzMzgiIHdpZHRoPSI0MCIgaGVpZ2h0PSIyNCIgcng9IjQiIGZpbGw9IiMwMDI4NDUiLz4KICAgIDwhLS0gd2hlZWxzIC0tPgogICAgPGNpcmNsZSBjeD0iMTc4IiBjeT0iNDA0IiByPSIzMCIgZmlsbD0iI2U3ZGNiMiIvPjxjaXJjbGUgY3g9IjE3OCIgY3k9IjQwNCIgcj0iMTIiIGZpbGw9IiMwMDI4NDUiLz4KICAgIDxjaXJjbGUgY3g9IjMyNiIgY3k9IjQwNCIgcj0iMzAiIGZpbGw9IiNlN2RjYjIiLz48Y2lyY2xlIGN4PSIzMjYiIGN5PSI0MDQiIHI9IjEyIiBmaWxsPSIjMDAyODQ1Ii8+CiAgPC9nPgo8L3N2Zz4K">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -819,4 +822,25 @@ try{const saved=localStorage.getItem('capsim-theme'); if(saved)document.document
 matchMedia('(prefers-color-scheme:dark)').addEventListener('change',redrawTheme);
 
 run();
+</script>
+
+<script>
+/* auto-update: silently reload when a newer version is deployed (no hard-refresh needed) */
+(function(){
+  var BUILD="20260909-203009";
+  function check(){
+    fetch('version.txt?cb='+Date.now(),{cache:'no-store'})
+      .then(function(r){return r.ok?r.text():null;})
+      .then(function(t){
+        if(!t)return; t=t.trim();
+        var seen=null; try{seen=sessionStorage.getItem('appvseen');}catch(e){}
+        if(t&&t!==BUILD&&t!==seen){
+          try{sessionStorage.setItem('appvseen',t);}catch(e){}
+          var u=new URL(location.href); u.searchParams.set('v',t);
+          location.replace(u.toString());
+        }
+      }).catch(function(){});
+  }
+  check(); setInterval(check,60000);
+})();
 </script>
