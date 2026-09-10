@@ -827,14 +827,15 @@ run();
 <script>
 /* auto-update: silently reload when a newer version is deployed (no hard-refresh needed) */
 (function(){
-  var BUILD="20260909-203009";
+  var BUILD="20260909-203127";
   function check(){
     fetch('version.txt?cb='+Date.now(),{cache:'no-store'})
       .then(function(r){return r.ok?r.text():null;})
       .then(function(t){
         if(!t)return; t=t.trim();
+        if(!/^\d{8}-\d{6}$/.test(t))return; /* only a real build id triggers reload */
         var seen=null; try{seen=sessionStorage.getItem('appvseen');}catch(e){}
-        if(t&&t!==BUILD&&t!==seen){
+        if(t!==BUILD&&t!==seen){
           try{sessionStorage.setItem('appvseen',t);}catch(e){}
           var u=new URL(location.href); u.searchParams.set('v',t);
           location.replace(u.toString());
